@@ -19,12 +19,13 @@
     PROCEDURE PutLine*(B: Bitmap; VAR data: ARRAY OF INTEGER; x, y, w: INTEGER);
 
 # Notes
-Bitmaps.Mod makes use of Memory.Mod by Andreas Pirklbauer for heap allocation
+Bitmaps.Mod makes use of Memory.Mod by Andreas Pirklbauer for heap allocation.
 Some raster operattions do not have all modes implemnted yet.
-To make tests, use test module, BitsTest.Mod, and run
+To make tests, use test module, BitsTest.Mod, and run:
+
     BitsTest 52 48 1 ~  BitsTest.Display 30 36 0 ~
 
-    `which creates bitmaps of [W]x[H] dimensions with 1-bit depth
-    `display them at [X][Y] coordinates, with supported mode [0=replace, 1=paint, 2=inverse].
-    `screen coordinate origin [0,0]=top left corner.
+    which creates bitmaps of [W]x[H] dimensions with 1-bit depth
+    display them at [X][Y] coordinates, with supported mode [0=replace, 1=paint, 2=inverse].
+    screen coordinate origin [0,0]=top left corner.
 
