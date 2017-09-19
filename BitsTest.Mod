@@ -1,4 +1,4 @@
-MODULE BitsTest; (*TK 16.9.2017*)
+MODULE BitsTest; (*TK 17.9.2017*)
   IMPORT Bitmaps, Display, Texts, Oberon;
   VAR W: Texts.Writer; Ba, Bb: Bitmaps.Bitmap; 
 
@@ -26,39 +26,39 @@ MODULE BitsTest; (*TK 16.9.2017*)
    
    IF (Ba # NIL) & (Bb # NIL) THEN
 
-        (* simple bitmap copy *)
-        Bitmaps.Clear(Ba);
-        Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y, mode);
-        Bitmaps.Copy(Ba, Bb, 0, 0, Ba.width, Ba.height, 0, 0, mode);
-        Bitmaps.DisplayBlock(Bb, 0, 0, Bb.width, Bb.height, x+70, y, mode);
+     (* simple bitmap copy *)
+     Bitmaps.Clear(Ba);
+     Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y, mode);
+     Bitmaps.Copy(Ba, Bb, 0, 0, Ba.width, Ba.height, 0, 0, mode);
+     Bitmaps.DisplayBlock(Bb, 0, 0, Bb.width, Bb.height, x+70, y, mode);
     
-        (* bitmap & pattern copy *)
-        Bitmaps.Clear(Ba);
-        Bitmaps.CopyPattern(Ba, Display.black, Display.arrow, Ba.width DIV 2, Ba.height DIV 2, mode);
-        Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y+70, mode);
-        Bitmaps.CopyBlock(Ba, Bb, 0, 0, Ba.width, Ba.height, 0, 0, mode);
-        Bitmaps.DisplayBlock(Bb, 0, 0, Bb.width, Bb.height, x+70, y+70, mode);
+     (* bitmap & pattern copy *)
+     Bitmaps.Clear(Ba);
+     Bitmaps.CopyPattern(Ba, Display.black, Display.arrow, Ba.width DIV 2, Ba.height DIV 2, mode);
+     Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y+70, mode);
+     Bitmaps.CopyBlock(Ba, Bb, 0, 0, Ba.width, Ba.height, 0, 0, mode);
+     Bitmaps.DisplayBlock(Bb, 0, 0, Bb.width, Bb.height, x+70, y+70, mode);
 
-        (* bitmap & replicate copy *)
-        Bitmaps.Clear(Ba);
-        Bitmaps.ReplPattern(Ba, 0, Display.block, 2, 2, 8, 8, mode);
-        Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y+140, mode);
-        Bitmaps.CopyBlock(Ba, Bb, 4, 4, 16, 16, 5, 10, mode);
-        Bitmaps.DisplayBlock(Bb, 0, 0, Bb.width, Bb.height, x+70, y+140, mode);
+     (* bitmap & replicate copy *)
+     Bitmaps.Clear(Ba);
+     Bitmaps.ReplPattern(Ba, 0, Display.block, 2, 2, 8, 8, mode);
+     Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y+140, mode);
+     Bitmaps.CopyBlock(Ba, Bb, 4, 4, 16, 16, 5, 10, mode);
+     Bitmaps.DisplayBlock(Bb, 0, 0, Bb.width, Bb.height, x+70, y+140, mode);
   
-        (* bitmap & pattern & replicate constant copy *)
-        Bitmaps.Clear(Ba);
-        Bitmaps.CopyPattern(Ba, Display.black, Display.block, 2, 2, mode);
-        Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y+210, mode);
-        Bitmaps.ReplConst(Ba, Display.white, 12, 10, 15, 20, mode);
-        Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x+70, y+210, mode);
+     (* bitmap & pattern & replicate constant copy *)
+     Bitmaps.Clear(Ba);
+     Bitmaps.CopyPattern(Ba, Display.black, Display.block, 2, 2, mode);
+     Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y+210, mode);
+     Bitmaps.ReplConst(Ba, Display.white, 12, 10, 15, 20, mode);
+     Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x+70, y+210, mode);
   
-        (* bitmap & dot *)
-        Bitmaps.Clear(Ba);
-        Bitmaps.Dot(Ba, Display.black, x, y, mode);
-        Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y+280, mode);
+     (* bitmap & dot *)
+     Bitmaps.Clear(Ba);
+     Bitmaps.Dot(Ba, Display.black, x, y, mode);
+     Bitmaps.DisplayBlock(Ba, 0, 0, Ba.width, Ba.height, x, y+280, mode);
 
-   END;
+   END; (*(Ba # NIL) & (Bb # NIL)*)
 
    (* Texts.WriteLn(W); Texts.Append(Oberon.Log, W.buf)*)
  END DisplayBits;

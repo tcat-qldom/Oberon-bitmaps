@@ -1,4 +1,4 @@
-MODULE Bitmaps; (*TK 16.9.2017*)
+MODULE Bitmaps; (*TK 17.9.2017*)
 IMPORT SYSTEM, Kernel, Memory, Display, Texts, Oberon;
 
 CONST
@@ -60,171 +60,124 @@ BEGIN w := B.width;
 
 END Dot;
 
+(* Shift & clip source word into pix sets according to x coordinate and w width *)
+
+PROCEDURE Src2Pix(x, w, src: INTEGER; VAR pix1, pix2: SET);
+  VAR x0, w0: INTEGER;
+BEGIN
+ 
+  (* (pix * {maskleft*8..31} * {0..maskright*8-1}) *)
+
+  w0 :=  w MOD 32; x0 := x MOD 32;
+
+  SYSTEM.GET(src, pix2);
+  IF w < 0 THEN pix2 := pix2*{0..w0} END;
+  pix1 := LSL(pix2, x0);
+    
+  IF x0 > 0 THEN pix2 := ASR(pix2, -x0)*{0..x0-1}
+  ELSE pix2 := {}
+  END
+
+END Src2Pix;
+
+(* Shift & clip constant word into pix sets according to x coordinate and w width *)
+
+PROCEDURE Const2Pix(x, w, con: INTEGER; VAR pix1, pix2: SET);
+  VAR x0, w0: INTEGER;
+BEGIN
+ 
+  (* (pix * {maskleft*8..31} * {0..maskright*8-1}) *)
+
+  w0 :=  w MOD 32; x0 := x MOD 32;
+
+  pix2 := SYSTEM.VAL(SET, con);
+  IF w < 0 THEN pix2 := pix2*{0..w0} END;
+  pix1 := LSL(pix2, x0);
+    
+  IF x0 > 0 THEN pix2 := ASR(pix2, -x0)*{0..x0-1}
+  ELSE pix2 := {}
+  END
+
+END Const2Pix;
+
 (* CopyPLine - Copy pattern line in paint mode *)
 
 PROCEDURE CopyPLine(x, src, dst, w: INTEGER);
-  VAR bt: BYTE; wd: INTEGER; pix: SET;   
+  VAR bt: BYTE; wd: INTEGER; pix1, pix2, pix: SET;   
 BEGIN
 
+  (*build pattern line; w < 32*)
   SYSTEM.GET(src, bt); INC(src); wd := bt;
   IF w > 8 THEN SYSTEM.GET(src, bt); INC(src); wd := bt*100H + wd;
     IF w > 16 THEN SYSTEM.GET(src, bt); INC(src); wd := bt*10000H + wd;
       IF w > 24 THEN SYSTEM.GET(src, bt); INC(src); wd := bt*1000000H + wd END
     END
   END;
-
-  (*wd := SYSTEM.VAL(INTEGER, SYSTEM.VAL(SET, wd)*{0..w MOD 32});*)
-
-  SYSTEM.GET(dst, pix);
-  SYSTEM.PUT(dst, SYSTEM.VAL(SET, LSL(wd, x MOD 32)) + pix);
-
-  IF x MOD 32  > 0 THEN
-    SYSTEM.GET(dst+4, pix); wd := ASR(wd, -(x MOD 32));
-    SYSTEM.PUT(dst+4, SYSTEM.VAL(SET, wd)(*{0..x MOD 32-1}*) + pix)
-  END
+  
+  Const2Pix(x, w, wd, pix1, pix2);
+  SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix1+pix); 
+  SYSTEM.GET(dst+4, pix); SYSTEM.PUT(dst+4, pix2+pix)
 
 END CopyPLine;
 
 (* ReplBLine0 - Replicate bitmap line in replace mode *)
 
 PROCEDURE ReplBLine0(col, x, dst, w: INTEGER);
-  VAR x0, w0, wd: INTEGER; pix: SET;   
+  VAR pix1, pix2, pix: SET;
 BEGIN
  
-  (* (pix * {maskleft*8..31} * {0..maskright*8-1}) *)
-
-  w0 :=  w MOD 32; x0 := x MOD 32;
   WHILE w > 0 DO
 
     (* paint black *)
-    DEC(w, 32); wd := -1;
-    IF w < 0 THEN wd := SYSTEM.VAL(INTEGER, SYSTEM.VAL(SET, wd)*{0..w0}) END;
-  
-    SYSTEM.GET(dst, pix);
-    SYSTEM.PUT(dst, SYSTEM.VAL(SET, LSL(wd, x0)) + pix);
-     
-    IF x0 > 0 THEN
-      SYSTEM.GET(dst+4, pix); wd := ASR(wd, -(x0));
-      SYSTEM.PUT(dst+4, SYSTEM.VAL(SET, wd)*{0..x0-1} + pix)
-    END; (* black *)
+    DEC(w, 32); Const2Pix(x, w, -1, pix1, pix2);
+    SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix1+pix);
+    SYSTEM.GET(dst+4, pix); SYSTEM.PUT(dst+4, pix2+pix); 
 
     (* invert white *)
     IF col=Display.white THEN
-      wd := -1;
-      IF w < 0 THEN wd := SYSTEM.VAL(INTEGER, SYSTEM.VAL(SET, wd)*{0..w0}) END;
-
-      SYSTEM.GET(dst, pix);
-      SYSTEM.PUT(dst, SYSTEM.VAL(SET, LSL(wd, x0)) / pix);
-    
-      IF x0 > 0 THEN
-        SYSTEM.GET(dst+4, pix); wd := ASR(wd, -(x0));
-        SYSTEM.PUT(dst+4, SYSTEM.VAL(SET, wd)*{0..x0-1} / pix)
-      END
-    END; INC(dst, 4) (* white *)
+      SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix1/pix); 
+      SYSTEM.GET(dst+4, pix); SYSTEM.PUT(dst+4, pix2/pix)
+    END; INC(dst, 4)
 
   END
 END ReplBLine0;
 
-(* CopyBLine0 - Copy bitmap line in replace mode *)
-
-PROCEDURE CopyBLine0(x, src, dst, w: INTEGER);
-  VAR w0, x0, wd: INTEGER; pix: SET;   
-BEGIN
- 
-  (* (pix * {maskleft*8..31} * {0..maskright*8-1}) *)
-
-  w0 :=  w MOD 32; x0 := x MOD 32;
-  WHILE w > 0 DO
-
-    (*paint black line*)
-    DEC(w, 32); wd := -1;
-    IF w < 0 THEN wd := SYSTEM.VAL(INTEGER, SYSTEM.VAL(SET, wd)*{0..w0}) END;
-  
-    SYSTEM.GET(dst, pix);
-    SYSTEM.PUT(dst, SYSTEM.VAL(SET, LSL(wd, x0)) + pix);
-
-    IF x0 > 0 THEN
-      SYSTEM.GET(dst+4, pix); wd := ASR(wd, -(x0));
-      SYSTEM.PUT(dst+4, SYSTEM.VAL(SET, wd)*{0..x0-1} + pix)
-    END; (*black*)
-
-    (*invert white=clear*)
-    wd := -1;
-    IF w < 0 THEN wd := SYSTEM.VAL(INTEGER, SYSTEM.VAL(SET, wd)*{0..w0}) END;
-
-    SYSTEM.GET(dst, pix);
-    SYSTEM.PUT(dst, SYSTEM.VAL(SET, LSL(wd, x0)) / pix);
-
-    IF x0 > 0 THEN
-      SYSTEM.GET(dst+4, pix); wd := ASR(wd, -(x0));
-      SYSTEM.PUT(dst+4, SYSTEM.VAL(SET, wd)*{0..x0-1} / pix)
-    END; (*white*)
-
-    (*paint bitmap line*)
-    SYSTEM.GET(src, wd); INC(src, 4);
-    IF w < 0 THEN wd := SYSTEM.VAL(INTEGER, SYSTEM.VAL(SET, wd)*{0..w0}) END;
-
-    SYSTEM.GET(dst, pix);
-    SYSTEM.PUT(dst, SYSTEM.VAL(SET, LSL(wd, x0)) + pix);
-
-    INC(dst, 4);
-    IF x0 > 0 THEN
-      SYSTEM.GET(dst, pix); wd := ASR(wd, -(x0));
-      SYSTEM.PUT(dst, SYSTEM.VAL(SET, wd)*{0..x0-1} + pix)
-    END (*bitmap line*)
- 
-  END
-END CopyBLine0;
-
 (* CopyBLine1 - Copy bitmap line in paint mode *)
 
 PROCEDURE CopyBLine1(x, src, dst, w: INTEGER);
-  VAR w0, wd: INTEGER; pix: SET;   
+  VAR pix1, pix2, pix: SET;   
 BEGIN
- 
-  (* (pix * {maskleft*8..31} * {0..maskright*8-1}) *)
 
-  w0 :=  w MOD 32; 
   WHILE w > 0 DO
 
-    SYSTEM.GET(src, wd); INC(src, 4); DEC(w, 32);
-    IF w < 0 THEN wd := SYSTEM.VAL(INTEGER, SYSTEM.VAL(SET, wd)*{0..w0}) END;
-
-    SYSTEM.GET(dst, pix);
-    SYSTEM.PUT(dst, SYSTEM.VAL(SET, LSL(wd, x MOD 32)) + pix);
-      
-    INC(dst, 4);
-    IF x MOD 32 > 0 THEN
-      SYSTEM.GET(dst, pix); wd := ASR(wd, -(x MOD 32));
-      SYSTEM.PUT(dst, SYSTEM.VAL(SET, wd)*{0..x MOD 32-1} + pix)
-    END
- 
+    DEC(w, 32); Src2Pix(x, w, src, pix1, pix2); INC(src, 4);
+    SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix1+pix); 
+    INC(dst, 4); SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix2+pix)
+    
   END
 END CopyBLine1;
 
+(* CopyBLine0 - Copy bitmap line in replace mode *)
+
+PROCEDURE CopyBLine0(x, src, dst, w: INTEGER);
+BEGIN
+
+  ReplBLine0(Display.white, x, dst, w);  (*clear*)
+  CopyBLine1(x, src, dst, w)                    (*paint*)  
+ 
+END CopyBLine0;
 
 (* CopyBLine2 - Copy bitmap line in invert mode *)
 
 PROCEDURE CopyBLine2(x, src, dst, w: INTEGER);
-  VAR w0, wd: INTEGER; pix: SET;   
+  VAR pix1, pix2, pix: SET; 
 BEGIN
  
-  (* (pix * {maskleft*8..31} * {0..maskright*8-1}) *)
-
-  w0 :=  w MOD 32; 
   WHILE w > 0 DO
 
-    SYSTEM.GET(src, wd); INC(src, 4); DEC(w, 32);
-    IF w < 0 THEN wd := SYSTEM.VAL(INTEGER, SYSTEM.VAL(SET, wd)*{0..w0}) END;
-
-    SYSTEM.GET(dst, pix);
-    SYSTEM.PUT(dst, SYSTEM.VAL(SET, LSL(wd, x MOD 32)) / pix);
-      
-    INC(dst, 4);
-    IF x MOD 32 > 0 THEN
-      SYSTEM.GET(dst, pix); wd := ASR(wd, -(x MOD 32));
-      SYSTEM.PUT(dst, SYSTEM.VAL(SET, wd)*{0..x MOD 32-1} / pix)
-    END
+    DEC(w, 32); Src2Pix(x, w, src, pix1, pix2); INC(src, 4);
+    SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix1/pix); 
+    INC(dst, 4); SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix2/pix)
  
   END
 END CopyBLine2;
@@ -248,7 +201,7 @@ BEGIN w0 := sB.width;
       UNTIL h = 0
     ELSIF mode = Display.replace THEN
       REPEAT
-        CopyBLine0(dx, src, dst, w);   
+        CopyBLine0(dx, src, dst, w);
         DEC(h);  INC(src, bw);  INC(dst, bw)
       UNTIL h = 0
     END
@@ -309,45 +262,6 @@ BEGIN
   END
 END ReplConst;
 
-(* modified from Display.ReplConst*)
-(*PROCEDURE ReplConst*(B: Bitmap; col, x, y, w, h, mode: INTEGER);
-    VAR al, ar, a0, a1, w0, bw: INTEGER; left, right, mid, pix, pixl, pixr: SET;
-  BEGIN 
-    w0 := B.width;
-    bw := ((w0+31+w0 MOD 32) DIV 32)*4;  (* number of bytes on bitmap line, word aligned *)
-    al := B.base + y*bw;
-    ar := ((x+w-1) DIV 32)*4 + al; al := (x DIV 32)*4 + al;
-    IF ar = al THEN
-      mid := {(x MOD 32) .. ((x+w-1) MOD 32)};
-      a1 := al; WHILE a1 < al + (h-1)*bw DO
-        SYSTEM.GET(a1, pix);
-        IF mode = Display.invert THEN SYSTEM.PUT(a1, pix / mid)
-        ELSIF (mode = Display.replace) & (col = Display.black) THEN (*erase*) SYSTEM.PUT(a1, pix - mid)
-        ELSE (* (mode = paint) OR (mode = Display.replace) & (col # Display.black) *) SYSTEM.PUT(a1, pix + mid)
-        END; INC(a1, bw)
-      END
-    ELSIF ar > al THEN
-      left := {(x MOD 32) .. 31}; right := {0 .. ((x+w-1) MOD 32)};
-      a0 := al; WHILE a0 < al + (h-1)*bw DO
-        SYSTEM.GET(a0, pixl); SYSTEM.GET(ar, pixr);
-        IF mode = Display.invert THEN
-          SYSTEM.PUT(a0, pixl / left);
-          FOR a1 := a0+4 TO ar-4 BY 4 DO SYSTEM.GET(a1, pix); SYSTEM.PUT(a1, -pix) END ;
-          SYSTEM.PUT(ar, pixr / right)
-        ELSIF (mode = Display.replace) & (col = Display.black) THEN (*erase*)
-          SYSTEM.PUT(a0, pixl - left);
-          FOR a1 := a0+4 TO ar-4 BY 4 DO SYSTEM.PUT(a1, {}) END ;
-          SYSTEM.PUT(ar, pixr - right)
-        ELSE (* (mode = paint) OR (mode = replace) & (col # black) *)
-          SYSTEM.PUT(a0, pixl + left);
-          FOR a1 := a0+4 TO ar-4 BY 4 DO SYSTEM.PUT(a1, {0 .. 31}) END ;
-          SYSTEM.PUT(ar, pixr + right)
-        END ;
-        INC(ar, bw); INC(a0, bw);
-      END
-    END
-  END ReplConst;*)
-
 PROCEDURE DisplayBlock*(B: Bitmap; sx, sy, w, h, dx, dy, mode: INTEGER);
   VAR bw, src, dst: INTEGER;
 BEGIN
@@ -368,9 +282,7 @@ BEGIN
     UNTIL h = 0
   ELSIF mode = Display.replace THEN
     REPEAT
-      ReplBLine0(Display.white, dx, dst, w); (*clear*)
-      CopyBLine1(dx, src, dst, w);                  (*paint*)
-      (*CopyBLine0(dx, src, dst, w);*)            (*clear & paint*)
+      CopyBLine0(dx, src, dst, w);
       DEC(h);  INC(src, bw);  INC(dst, dbw)
     UNTIL h = 0
   END
