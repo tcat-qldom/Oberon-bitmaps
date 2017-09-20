@@ -32,6 +32,5 @@ To make tests, use test module, 'BitsTest.Mod', and run:
     screen coordinate origin [0,0]=top left corner
 
 # Dependant sources
-     'Memory.Mod'
-     https://github.com/andreaspirklbauer/Oberon-generic-heap-allocation
+'Memory.Mod'   (https://github.com/andreaspirklbauer/Oberon-generic-heap-allocation/blob/master/Sources/OriginalOberon2013/Memory.Mod)
 
