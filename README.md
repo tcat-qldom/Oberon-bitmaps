@@ -4,7 +4,6 @@
 
 # Supported interface
     PROCEDURE New*(B: Bitmap; w, h, dpt: INTEGER) : Bitmap;
-    PROCEDURE New*(w, h, dpt: INTEGER) : Bitmap;
     PROCEDURE Get*(B: Bitmap; x, y: INTEGER): INTEGER;
     PROCEDURE Clear*(B: Bitmap);
     PROCEDURE Dot*(B: Bitmap; col, x, y, mode: INTEGER);
