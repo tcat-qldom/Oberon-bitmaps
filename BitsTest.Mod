@@ -11,7 +11,7 @@ MODULE BitsTest; (*TK 17.9.2017*)
      IF S.class = Texts.Int THEN h := S.i END
    END;
    
-   Ba := Bitmaps.New(w, h, 1); Bb := Bitmaps.New(w, h, 1);
+   Ba := Bitmaps.New(NIL, w, h, 1); Bb := Bitmaps.New(NIL, w, h, 1);
  END New;
 
  PROCEDURE DisplayBits*;
