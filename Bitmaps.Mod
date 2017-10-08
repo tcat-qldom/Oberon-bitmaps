@@ -1,4 +1,4 @@
-MODULE Bitmaps; (*TK 17.9.2017*)
+MODULE Bitmaps; (*TK 8.10.2017*)
 IMPORT SYSTEM, Kernel, Memory, Display, Texts, Oberon;
 
 CONST
@@ -8,23 +8,33 @@ TYPE
   Bitmap* = POINTER TO BitmapDesc;
   BitmapDesc* = RECORD
     width*, height*, depth*: INTEGER;
-    base*: INTEGER;
-    size*: INTEGER
+    base*, size* : INTEGER
   END;
 
 VAR
   W: Texts.Writer;
 
-PROCEDURE New*(w, h, dpt: INTEGER) : Bitmap;
+(*PROCEDURE New*(w, h, dpt: INTEGER) : Bitmap;
   VAR b: Bitmap;
 BEGIN
   NEW(b); IF b # NIL THEN
     b.width := w; b.height := h; b.depth := dpt;
-    b.size := ((w+31+w MOD 32) DIV 32)*4 * h; (*bitmap size in bytes, word aligned*)
+    b.size := (w+31) DIV 32 * 4 * h; (*bitmap size in bytes, word aligned*)
     Memory.New(SYSTEM.VAL(Memory.Pointer, b.base), b.size);
     IF b.base = 0 THEN b := NIL END
   END
-RETURN b END New;
+RETURN b END New;*)
+
+PROCEDURE New*(B: Bitmap; w, h, dpt: INTEGER) : Bitmap;
+BEGIN
+  IF B = NIL THEN NEW(B) END;
+  IF B # NIL THEN
+    B.width := w; B.height := h; B.depth := dpt;
+    B.size := (w+31) DIV 32 * 4 * h; (*bitmap size in bytes, word aligned*)
+    Memory.New(SYSTEM.VAL(Memory.Pointer, B.base), B.size);
+    IF B.base = 0 THEN B := NIL END
+  END
+RETURN B END New;
 
 PROCEDURE Get*(B: Bitmap; x, y: INTEGER): INTEGER;
   VAR ofs, wd: INTEGER; bt: BYTE;
@@ -48,8 +58,8 @@ END Clear;
 PROCEDURE Dot*(B: Bitmap; col, x, y, mode: INTEGER);
   VAR a, w, bw: INTEGER; u, s: SET;
 BEGIN w := B.width;
-    bw := ((w+31+w MOD 32) DIV 32)*4;   (* number of bytes on bitmap line, word aligned *)
-  a := B.base + y*bw + (x DIV 32)*4;        (* address of bitmap word *)
+    bw := (w+31) DIV 32 * 4;   (* number of bytes on bitmap line, word aligned *)
+    a := B.base + y*bw + (x DIV 32)*4;        (* address of bitmap word *)
     s := {x MOD 32}; SYSTEM.GET(a, u);
 
     IF mode = Display.paint THEN SYSTEM.PUT(a, u + s)
@@ -185,7 +195,7 @@ END CopyBLine2;
 PROCEDURE CopyBlock*(sB, dB: Bitmap; sx, sy, w, h, dx, dy, mode: INTEGER);
   VAR w0, bw, src, dst: INTEGER;
 BEGIN w0 := sB.width;
-  bw := ((w0+31+w0 MOD 32) DIV 32)*4;   (* number of bytes on bitmap line, word aligned *)
+  bw := (w0+31) DIV 32 * 4;   (* number of bytes on bitmap line, word aligned *)
   src := sB.base + sy*bw + (sx DIV 32)*4;     (* source bottom left bitmap byte *);
   dst := dB.base + dy*bw + (dx DIV 32)*4;   (* destination *)
 
@@ -214,7 +224,7 @@ BEGIN
   SYSTEM.GET(pat, w); SYSTEM.GET(pat+1, h); INC(pat, 2);
 
   pw := (w+7) DIV 8;  (* bytes in pattern line *)
-  bw := ((B.width+31+B.width MOD 32) DIV 32)*4;   (* bytes in bitmap line, word aligned *)
+  bw := (B.width+31) DIV 32 *4;             (* bytes in bitmap line, word aligned *)
   dst := B.base + y*bw + (x DIV 32)*4;  (* bottom left address of bitmap raster *)
 
   REPEAT  (* loop over h lines *)
@@ -231,7 +241,7 @@ BEGIN
   h0 := h; pat0 := pat;
 
   pw := (w+7) DIV 8;  (* bytes in pattern line *)
-  bw := ((B.width+31+B.width MOD 32) DIV 32)*4;   (* bytes in bitmap line, word aligned *)
+  bw := (B.width+31) DIV 32 *4;     (* bytes in bitmap line, word aligned *)
   ny := Y+((B.height-Y) DIV H)*H;    (* number of patterns to fit vertically in bitmap*)
   nx := X+((B.width-X) DIV W)*W; (* number of patterns to fit horizontally in bitmap*)
 
@@ -252,7 +262,7 @@ PROCEDURE ReplConst*(B: Bitmap; col, x, y, w, h, mode: INTEGER);
   VAR w0, bw, dst: INTEGER;
 BEGIN
   w0 := B.width;
-  bw := ((w0+31+w0 MOD 32) DIV 32)*4;  (* number of bytes on bitmap line, word aligned *)
+  bw := (w0+31) DIV 32 * 4;        (* number of bytes on bitmap line, word aligned *)
   dst := B.base + y*bw + (x DIV 32)*4;        (* bottom left address of bitmap raster *)
   IF mode = Display.replace THEN
     REPEAT
@@ -265,10 +275,10 @@ END ReplConst;
 PROCEDURE DisplayBlock*(B: Bitmap; sx, sy, w, h, dx, dy, mode: INTEGER);
   VAR bw, src, dst: INTEGER;
 BEGIN
-  bw := ((w+31+w MOD 32) DIV 32)*4; (* number of bytes on bitmap line, word aligned *)
-  src := B.base; (*Texts.WriteInt(W, pw, 6); Texts.WriteLn(Wr);*)
-  dy := Display.Height-dy-h; (* convert dy to screen coordinate 0,0 = bottom,left *)
-  dst := Display.Base + dy*dbw + (dx DIV 32)*4;  (* addr bottom left byte *)
+  bw := (w+31) DIV 32 * 4;         (* number of bytes on bitmap line, word aligned *)
+  src := B.base;
+  dy := Display.Height-dy-h;  (* convert dy to screen coordinate 0,0 = bottom,left *)
+  dst := Display.Base + dy*dbw + (dx DIV 32)*4;               (* addr bottom left byte *)
 
   IF mode = Display.invert THEN
     REPEAT
@@ -289,21 +299,27 @@ BEGIN
 
 END DisplayBlock;
 
-PROCEDURE GetPix*(VAR addr: INTEGER; VAR buf: BYTE; depth: INTEGER);
-  VAR s1, s2, s3: INTEGER;
-BEGIN s1 := 0; s2 := 0;
-  WHILE s1 < 8 DO SYSTEM.GET(addr, s3); INC(addr); INC(s1); s2 := s2*2 + s3 MOD 2 END; buf := s2
+PROCEDURE GetPix*(VAR a: INTEGER; VAR bt: BYTE; depth: INTEGER);
+BEGIN
+  SYSTEM.GET(a, bt); INC(a)
 END GetPix;
 
-PROCEDURE PutPix*(VAR addr, border: INTEGER; buf: BYTE; depth: INTEGER);
-  VAR s1: INTEGER;
-BEGIN s1 := 0;
-  WHILE s1 < 8 DO
-    IF addr < border THEN
-      IF ODD(buf) THEN SYSTEM.PUT(addr, 15) ELSE SYSTEM.PUT(addr, 0) END
-    END;
-    INC(s1); INC(addr); buf := buf DIV 2;
+(*PROCEDURE PutPix*(a: INTEGER; VAR x: INTEGER; bt: BYTE; depth: INTEGER);
+  VAR i: BYTE; u, s: SET;
+BEGIN
+  FOR i := 0 TO 7 DO
+    s := {x MOD 32}; SYSTEM.GET(a, u);
+    IF ODD(bt) THEN SYSTEM.PUT(a, u + s) ELSE SYSTEM.PUT(a, u - s) END;
+    INC(x); bt := bt DIV 2
   END
+END PutPix;*)
+
+PROCEDURE PutPix*(VAR a, x: INTEGER; bt: BYTE; depth: INTEGER);
+  VAR wd: INTEGER; u, s: SET;
+BEGIN
+  wd := bt; s := SYSTEM.VAL(SET, LSL(wd, x MOD 32));
+  SYSTEM.GET(a, u); SYSTEM.PUT(a, u + s);
+  INC(a); INC(x, 8)
 END PutPix;
 
 PROCEDURE Copy*(sB, dB: Bitmap; sx, sy, w, h, dx, dy, mode: INTEGER);

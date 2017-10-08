@@ -3,6 +3,7 @@
 ![Bitmaps.Mod](Screen0.png?raw=true "Bitmaps.Mod")
 
 # Supported interface
+    PROCEDURE New*(B: Bitmap; w, h, dpt: INTEGER) : Bitmap;
     PROCEDURE New*(w, h, dpt: INTEGER) : Bitmap;
     PROCEDURE Get*(B: Bitmap; x, y: INTEGER): INTEGER;
     PROCEDURE Clear*(B: Bitmap);
@@ -13,10 +14,10 @@
     PROCEDURE ReplPattern*(B: Bitmap; col, pat, X, Y, W, H, mode: INTEGER);
     PROCEDURE ReplConst*(B: Bitmap; col, x, y, w, h, mode: INTEGER);
     PROCEDURE DisplayBlock*(B: Bitmap; sx, sy, w, h, dx, dy, mode: INTEGER);
+    PROCEDURE GetPix*(VAR a: INTEGER; VAR bt: BYTE; depth: INTEGER);
+    PROCEDURE PutPix*(VAR a, x: INTEGER; bt: BYTE; depth: INTEGER);
 
 # Under development
-    PROCEDURE GetPix*(VAR addr: INTEGER; VAR buf: BYTE; depth: INTEGER);
-    PROCEDURE PutPix*(VAR addr, border: INTEGER; buf: BYTE; depth: INTEGER);
     PROCEDURE PutLine*(B: Bitmap; VAR data: ARRAY OF INTEGER; x, y, w: INTEGER);
     PROCEDURE GetLine*(B: Bitmap; VAR data: ARRAY OF INTEGER; x, y, w: INTEGER);
 
