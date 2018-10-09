@@ -1,4 +1,4 @@
-MODULE Bitmaps; (*TK 8.10.2017*)
+MODULE Bitmaps; (*TK 8.10.2017 / 7.9.2018*)
 IMPORT SYSTEM, Kernel, Memory, Display, Texts, Oberon;
 
 CONST
@@ -138,15 +138,14 @@ BEGIN
  
   WHILE w > 0 DO
 
-    (* paint black *)
     DEC(w, 32); Const2Pix(x, w, -1, pix1, pix2);
-    SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix1+pix);
-    SYSTEM.GET(dst+4, pix); SYSTEM.PUT(dst+4, pix2+pix); 
 
-    (* invert white *)
-    IF col=Display.white THEN
-      SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix1/pix); 
-      SYSTEM.GET(dst+4, pix); SYSTEM.PUT(dst+4, pix2/pix)
+    IF col = Display.black THEN (* paint black *)
+      SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix1+pix);
+      SYSTEM.GET(dst+4, pix); SYSTEM.PUT(dst+4, pix2+pix); 
+    ELSE (* erase white *)
+      SYSTEM.GET(dst, pix); SYSTEM.PUT(dst, pix-pix1); 
+      SYSTEM.GET(dst+4, pix); SYSTEM.PUT(dst+4, pix-pix2)
     END; INC(dst, 4)
 
   END
